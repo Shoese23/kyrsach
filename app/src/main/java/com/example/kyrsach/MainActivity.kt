@@ -1,12 +1,17 @@
 package com.example.kyrsach
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.View
-import android.widget.CalendarView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.applandeo.materialcalendarview.CalendarView
+import com.applandeo.materialcalendarview.CalendarDay
+import com.applandeo.materialcalendarview.EventDay
+import com.applandeo.materialcalendarview.listeners.OnDayClickListener
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
@@ -20,70 +25,145 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pieChart: PieChart
     private lateinit var moodColorIndicator: View
     private lateinit var tvMoodText: TextView
-
-    // Имитация базы данных
     private val moodEntries = mutableListOf<MoodEntry>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        calendarView = findViewById(R.id.calendar_view)
+        calendarView = findViewById(R.id.calendarView)
         pieChart = findViewById(R.id.pie_chart_mood)
         moodColorIndicator = findViewById(R.id.mood_color_indicator)
         tvMoodText = findViewById(R.id.tv_mood_text)
 
-        // Тестовые данные
-        addMockData()
-
+        loadMoodData()
         setupCalendar()
         setupChart()
 
         findViewById<FloatingActionButton>(R.id.fab_add_entry).setOnClickListener {
-            startActivity(Intent(this, EntryActivity::class.java))
+            val cal = Calendar.getInstance()
+            startActivity(Intent(this, EntryActivity::class.java).apply {
+                putExtra("YEAR", cal.get(Calendar.YEAR))
+                putExtra("MONTH", cal.get(Calendar.MONTH) + 1)
+                putExtra("DAY", cal.get(Calendar.DAY_OF_MONTH))
+            })
         }
     }
 
     override fun onResume() {
         super.onResume()
+        loadMoodData()
+        updateCalendarColors()
         updateChart()
     }
 
-    private fun setupCalendar() {
-        calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
-            val moodEntry = moodEntries.find {
-                it.year == year && it.month == (month + 1) && it.day == dayOfMonth
-            }
+    private fun loadMoodData() {
+        moodEntries.clear()
+        val prefs = getSharedPreferences("mood_prefs", Context.MODE_PRIVATE)
+        val allMoods = prefs.all
 
-            if (moodEntry != null) {
-                // Показываем настроение выбранного дня
-                when (moodEntry.moodType) {
-                    1 -> {
-                        moodColorIndicator.setBackgroundColor(Color.parseColor("#4CAF50"))
-                        tvMoodText.text = "😊 Хорошее настроение: ${moodEntry.text}"
-                    }
-                    2 -> {
-                        moodColorIndicator.setBackgroundColor(Color.parseColor("#FFEB3B"))
-                        tvMoodText.text = "😐 Нейтральное настроение: ${moodEntry.text}"
-                    }
-                    3 -> {
-                        moodColorIndicator.setBackgroundColor(Color.parseColor("#F44336"))
-                        tvMoodText.text = "😞 Плохое настроение: ${moodEntry.text}"
-                    }
+        for ((key, value) in allMoods) {
+            if (key.startsWith("mood_") && !key.startsWith("mood_text_")) {
+                val parts = key.split("_")
+                if (parts.size == 4) {
+                    val year = parts[1].toIntOrNull() ?: continue
+                    val month = parts[2].toIntOrNull() ?: continue
+                    val day = parts[3].toIntOrNull() ?: continue
+                    val moodType = value as? Int ?: continue
+
+                    // ✅ Загружаем текст
+                    val text = prefs.getString("mood_text_${year}_${month}_${day}", "") ?: ""
+
+                    moodEntries.add(MoodEntry(year, month, day, moodType, text))
                 }
-            } else {
-                moodColorIndicator.setBackgroundColor(Color.parseColor("#E0E0E0"))
-                tvMoodText.text = "Нет записи на $dayOfMonth.${month + 1}.$year"
+            }
+        }
+    }
+
+    private fun setupCalendar() {
+        calendarView.setOnDayClickListener(object : OnDayClickListener {
+            override fun onDayClick(eventDay: EventDay) {
+                val cal = eventDay.calendar
+                val year = cal.get(Calendar.YEAR)
+                val month = cal.get(Calendar.MONTH) + 1
+                val day = cal.get(Calendar.DAY_OF_MONTH)
+
+                val moodEntry = moodEntries.find {
+                    it.year == year && it.month == month && it.day == day
+                }
+
+                if (moodEntry != null) {
+                    when (moodEntry.moodType) {
+                        1 -> {
+                            moodColorIndicator.setBackgroundColor(Color.parseColor("#4CAF50"))
+                            // ✅ Показываем текст, если он есть
+                            tvMoodText.text = if (moodEntry.text.isNotEmpty()) {
+                                "😊 Хорошее настроение: ${moodEntry.text}"
+                            } else {
+                                "😊 Хорошее настроение"
+                            }
+                        }
+                        2 -> {
+                            moodColorIndicator.setBackgroundColor(Color.parseColor("#FFEB3B"))
+                            tvMoodText.text = if (moodEntry.text.isNotEmpty()) {
+                                "😐 Нейтральное настроение: ${moodEntry.text}"
+                            } else {
+                                "😐 Нейтральное настроение"
+                            }
+                        }
+                        3 -> {
+                            moodColorIndicator.setBackgroundColor(Color.parseColor("#F44336"))
+                            tvMoodText.text = if (moodEntry.text.isNotEmpty()) {
+                                "😞 Плохое настроение: ${moodEntry.text}"
+                            } else {
+                                "😞 Плохое настроение"
+                            }
+                        }
+                    }
+                } else {
+                    moodColorIndicator.setBackgroundColor(Color.parseColor("#424242"))
+                    tvMoodText.text = "Нет записи на $day.$month.$year"
+                }
+
+                startActivity(Intent(this@MainActivity, EntryActivity::class.java).apply {
+                    putExtra("YEAR", year)
+                    putExtra("MONTH", month)
+                    putExtra("DAY", day)
+                })
+            }
+        })
+    }
+
+    private fun updateCalendarColors() {
+        val calendarDays = mutableListOf<CalendarDay>()
+
+        moodEntries.forEach { entry ->
+            val cal = Calendar.getInstance().apply {
+                set(Calendar.YEAR, entry.year)
+                set(Calendar.MONTH, entry.month - 1)
+                set(Calendar.DAY_OF_MONTH, entry.day)
             }
 
-            // Открываем экран редактирования
-            val intent = Intent(this, EntryActivity::class.java).apply {
-                putExtra("YEAR", year)
-                putExtra("MONTH", month + 1)
-                putExtra("DAY", dayOfMonth)
+            val color = when (entry.moodType) {
+                1 -> Color.parseColor("#4CAF50")
+                2 -> Color.parseColor("#FFEB3B")
+                3 -> Color.parseColor("#F44336")
+                else -> Color.TRANSPARENT
             }
-            startActivity(intent)
+
+            val drawable = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 16f
+                setColor(color)
+            }
+
+            calendarDays.add(CalendarDay(cal).apply {
+                backgroundDrawable = drawable
+                labelColor = if (entry.moodType == 2) R.color.mood_neutral_text else R.color.mood_good_text_white
+            })
         }
+
+        calendarView.setCalendarDays(calendarDays)
     }
 
     private fun setupChart() {
@@ -91,6 +171,7 @@ class MainActivity : AppCompatActivity() {
         pieChart.isDrawHoleEnabled = true
         pieChart.holeRadius = 40f
         pieChart.setUsePercentValues(true)
+        pieChart.legend.textColor = Color.parseColor("#E0E0E0")
     }
 
     private fun updateChart() {
@@ -98,15 +179,12 @@ class MainActivity : AppCompatActivity() {
         val neutralCount = moodEntries.count { it.moodType == 2 }.toFloat()
         val badCount = moodEntries.count { it.moodType == 3 }.toFloat()
 
-        if (goodCount + neutralCount + badCount == 0f) {
-            pieChart.clear()
-            return
-        }
+        val entries = mutableListOf<PieEntry>()
 
-        val entries = arrayListOf<PieEntry>()
-        if (goodCount > 0) entries.add(PieEntry(goodCount, "Хорошее"))
-        if (neutralCount > 0) entries.add(PieEntry(neutralCount, "Нейтральное"))
-        if (badCount > 0) entries.add(PieEntry(badCount, "Плохое"))
+        // ✅ Всегда добавляем все три категории, даже если их 0
+        entries.add(PieEntry(goodCount, "Хорошее"))
+        entries.add(PieEntry(neutralCount, "Нейтральное"))
+        entries.add(PieEntry(badCount, "Плохое"))
 
         val dataSet = PieDataSet(entries, "").apply {
             colors = listOf(
@@ -114,21 +192,23 @@ class MainActivity : AppCompatActivity() {
                 Color.parseColor("#FFEB3B"),
                 Color.parseColor("#F44336")
             )
-            valueTextColor = Color.BLACK
+            valueTextColor = Color.parseColor("#E0E0E0")
             valueTextSize = 14f
         }
 
         pieChart.data = PieData(dataSet)
+
+        // ✅ Настройка отображения при нулевых значениях
+        if (goodCount + neutralCount + badCount == 0f) {
+            pieChart.setDrawEntryLabels(false) // Скрыть подписи на секторах
+            pieChart.centerText = "Нет данных"
+            pieChart.setCenterTextSize(16f)
+            pieChart.setCenterTextColor(Color.parseColor("#A0A0A0"))
+        } else {
+            pieChart.setDrawEntryLabels(true)
+            pieChart.centerText = ""
+        }
+
         pieChart.invalidate()
-    }
-
-    private fun addMockData() {
-        val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH) + 1
-
-        moodEntries.add(MoodEntry(year, month, 10, 1, "Отличный день!"))
-        moodEntries.add(MoodEntry(year, month, 12, 3, "Немного грустно"))
-        moodEntries.add(MoodEntry(year, month, 14, 2, "Обычный день"))
     }
 }

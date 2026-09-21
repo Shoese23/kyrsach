@@ -6,13 +6,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
+    android:background="#121212"
     tools:context=".EntryActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:background="#121212">
 
         <TextView
             android:id="@+id/tv_entry_date"
@@ -21,6 +23,7 @@
             android:text="14 сентября 2026"
             android:textSize="20sp"
             android:textStyle="bold"
+            android:textColor="#E0E0E0"
             android:layout_marginBottom="16dp"/>
 
         <TextView
@@ -28,6 +31,7 @@
             android:layout_height="wrap_content"
             android:text="Как вы себя чувствуете?"
             android:textSize="16sp"
+            android:textColor="#E0E0E0"
             android:layout_marginBottom="8dp"/>
 
         <RadioGroup
@@ -77,6 +81,7 @@
             android:layout_height="wrap_content"
             android:text="Цвет настроения"
             android:textSize="16sp"
+            android:textColor="#E0E0E0"
             android:layout_marginBottom="8dp"/>
 
         <LinearLayout
@@ -92,38 +97,47 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_margin="8dp"
-                android:background="#FF5252" />
+                android:background="#FF5252"
+                android:alpha="0.5"/>
 
             <View
                 android:id="@+id/color_neutral"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_margin="8dp"
-                android:background="#FFEB3B" />
+                android:background="#FFEB3B"
+                android:alpha="0.5"/>
 
             <View
                 android:id="@+id/color_good"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_margin="8dp"
-                android:background="#4CAF50" />
+                android:background="#4CAF50"
+                android:alpha="0.5"/>
         </LinearLayout>
-
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Опишите свой день"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="24dp"
+            app:hintTextColor="#FFFFFF"
+            app:boxBackgroundMode="outline"
+            app:boxStrokeColor="#555555"
+            app:boxStrokeColorFocused="#91BFC2">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_mood_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="top"
-                android:inputType="textMultiLine"
+                android:inputType="textMultiLine|textCapSentences"
                 android:minLines="4"
-                android:maxLines="8"/>
+                android:maxLines="8"
+                android:textColor="#E0E0E0"
+                android:textColorHint="#757575"
+                android:backgroundTint="#555555"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <LinearLayout
@@ -140,15 +154,17 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:text="Удалить"
-                android:textColor="@color/design_default_color_error"
-                app:strokeColor="@color/design_default_color_error"/>
+                android:textColor="#F44336"
+                app:strokeColor="#F44336"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_save"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Сохранить"/>
+                android:text="Сохранить"
+                app:backgroundTint="#91BFC2"
+                app:rippleColor="#5A8F92"/>
         </LinearLayout>
 
     </LinearLayout>

@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">kyrsach</string>
+    <string name="hint_mood_text">Как вы себя чувствуете сегодня?</string>
+    <string name="save">Сохранить</string>
+    <string name="delete">Удалить</string>
 </resources>

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="mood_good_text">#000000</color>
+    <color name="mood_good_text_white">#FFFFFF</color>
+    <color name="mood_neutral_text">#000000</color>
+    <color name="mood_bad_text">#FFFFFF</color>
 </resources>
