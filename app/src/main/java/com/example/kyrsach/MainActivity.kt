@@ -54,7 +54,13 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         loadMoodData()
         updateCalendarColors()
-        updateChart()
+
+        // ✅ Передаем текущий год и месяц из календаря
+        val currentCal = calendarView.currentPageDate
+        val year = currentCal.get(java.util.Calendar.YEAR)
+        val month = currentCal.get(java.util.Calendar.MONTH) + 1
+
+        updateChartForMonth(year, month)
     }
 
     private fun loadMoodData() {
@@ -80,56 +86,87 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var lastClickTime: Long = 0
+    private val DOUBLE_CLICK_TIME_DELTA: Long = 300 // Время для двойного клика (мс)
+
+    // Переменные для отслеживания текущего отображаемого месяца
+    private var currentChartYear: Int = 0
+    private var currentChartMonth: Int = 0
+
     private fun setupCalendar() {
-        calendarView.setOnDayClickListener(object : OnDayClickListener {
-            override fun onDayClick(eventDay: EventDay) {
-                val cal = eventDay.calendar
-                val year = cal.get(Calendar.YEAR)
-                val month = cal.get(Calendar.MONTH) + 1
-                val day = cal.get(Calendar.DAY_OF_MONTH)
+        // Инициализируем текущий месяц при запуске
+        val initCal = calendarView.currentPageDate
+        currentChartYear = initCal.get(java.util.Calendar.YEAR)
+        currentChartMonth = initCal.get(java.util.Calendar.MONTH) + 1
 
-                val moodEntry = moodEntries.find {
-                    it.year == year && it.month == month && it.day == day
+        // Сразу строим график для текущего месяца
+        updateChartForMonth(currentChartYear, currentChartMonth)
+
+        // ОБРАБОТКА КЛИКОВ
+        calendarView.setOnDayClickListener(object : com.applandeo.materialcalendarview.listeners.OnDayClickListener {
+            override fun onDayClick(eventDay: com.applandeo.materialcalendarview.EventDay) {
+                val currentTime = System.currentTimeMillis()
+
+                // Получаем данные о дате, на которую нажали
+                val clickedCal = eventDay.calendar
+                val clickedYear = clickedCal.get(java.util.Calendar.YEAR)
+                val clickedMonth = clickedCal.get(java.util.Calendar.MONTH) + 1
+                val clickedDay = clickedCal.get(java.util.Calendar.DAY_OF_MONTH)
+
+                // ✅ ПРОВЕРКА СМЕНЫ МЕСЯЦА
+                // Если месяц клика отличается от месяца графика — значит, пользователь перелистнул календарь
+                if (clickedYear != currentChartYear || clickedMonth != currentChartMonth) {
+                    currentChartYear = clickedYear
+                    currentChartMonth = clickedMonth
+                    updateChartForMonth(currentChartYear, currentChartMonth)
                 }
 
-                if (moodEntry != null) {
-                    when (moodEntry.moodType) {
-                        1 -> {
-                            moodColorIndicator.setBackgroundColor(Color.parseColor("#4CAF50"))
-                            // ✅ Показываем текст, если он есть
-                            tvMoodText.text = if (moodEntry.text.isNotEmpty()) {
-                                "😊 Хорошее настроение: ${moodEntry.text}"
-                            } else {
-                                "😊 Хорошее настроение"
-                            }
-                        }
-                        2 -> {
-                            moodColorIndicator.setBackgroundColor(Color.parseColor("#FFEB3B"))
-                            tvMoodText.text = if (moodEntry.text.isNotEmpty()) {
-                                "😐 Нейтральное настроение: ${moodEntry.text}"
-                            } else {
-                                "😐 Нейтральное настроение"
-                            }
-                        }
-                        3 -> {
-                            moodColorIndicator.setBackgroundColor(Color.parseColor("#F44336"))
-                            tvMoodText.text = if (moodEntry.text.isNotEmpty()) {
-                                "😞 Плохое настроение: ${moodEntry.text}"
-                            } else {
-                                "😞 Плохое настроение"
-                            }
-                        }
+                // Проверяем, был ли это двойной клик
+                if (currentTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
+                    // ✅ ДВОЙНОЙ КЛИК: Открываем экран редактирования
+                    lastClickTime = 0
+
+                    val intent = Intent(this@MainActivity, EntryActivity::class.java).apply {
+                        putExtra("YEAR", clickedYear)
+                        putExtra("MONTH", clickedMonth)
+                        putExtra("DAY", clickedDay)
                     }
-                } else {
-                    moodColorIndicator.setBackgroundColor(Color.parseColor("#424242"))
-                    tvMoodText.text = "Нет записи на $day.$month.$year"
-                }
+                    startActivity(intent)
 
-                startActivity(Intent(this@MainActivity, EntryActivity::class.java).apply {
-                    putExtra("YEAR", year)
-                    putExtra("MONTH", month)
-                    putExtra("DAY", day)
-                })
+                } else {
+                    // ✅ ОДИНАРНЫЙ КЛИК: Показываем информацию внизу
+                    lastClickTime = currentTime
+
+                    val moodEntry = moodEntries.find {
+                        it.year == clickedYear && it.month == clickedMonth && it.day == clickedDay
+                    }
+
+                    if (moodEntry != null) {
+                        when (moodEntry.moodType) {
+                            1 -> {
+                                moodColorIndicator.setBackgroundColor(Color.parseColor("#4CAF50"))
+                                tvMoodText.text = if (moodEntry.text.isNotEmpty())
+                                    "😊 Хорошее настроение: ${moodEntry.text}"
+                                else "😊 Хорошее настроение"
+                            }
+                            2 -> {
+                                moodColorIndicator.setBackgroundColor(Color.parseColor("#FFEB3B"))
+                                tvMoodText.text = if (moodEntry.text.isNotEmpty())
+                                    "😐 Нейтральное настроение: ${moodEntry.text}"
+                                else "😐 Нейтральное настроение"
+                            }
+                            3 -> {
+                                moodColorIndicator.setBackgroundColor(Color.parseColor("#F44336"))
+                                tvMoodText.text = if (moodEntry.text.isNotEmpty())
+                                    " Плохое настроение: ${moodEntry.text}"
+                                else "😞 Плохое настроение"
+                            }
+                        }
+                    } else {
+                        moodColorIndicator.setBackgroundColor(Color.parseColor("#424242"))
+                        tvMoodText.text = "Нет записи на $clickedDay.$clickedMonth.$clickedYear"
+                    }
+                }
             }
         })
     }
@@ -174,14 +211,13 @@ class MainActivity : AppCompatActivity() {
         pieChart.legend.textColor = Color.parseColor("#E0E0E0")
     }
 
-    private fun updateChart() {
-        val goodCount = moodEntries.count { it.moodType == 1 }.toFloat()
-        val neutralCount = moodEntries.count { it.moodType == 2 }.toFloat()
-        val badCount = moodEntries.count { it.moodType == 3 }.toFloat()
+    private fun updateChartForMonth(year: Int, month: Int) {
+        // Фильтруем записи: берем только те, что совпадают с выбранным месяцем
+        val goodCount = moodEntries.count { it.moodType == 1 && it.year == year && it.month == month }.toFloat()
+        val neutralCount = moodEntries.count { it.moodType == 2 && it.year == year && it.month == month }.toFloat()
+        val badCount = moodEntries.count { it.moodType == 3 && it.year == year && it.month == month }.toFloat()
 
         val entries = mutableListOf<PieEntry>()
-
-        // ✅ Всегда добавляем все три категории, даже если их 0
         entries.add(PieEntry(goodCount, "Хорошее"))
         entries.add(PieEntry(neutralCount, "Нейтральное"))
         entries.add(PieEntry(badCount, "Плохое"))
@@ -192,20 +228,40 @@ class MainActivity : AppCompatActivity() {
                 Color.parseColor("#FFEB3B"),
                 Color.parseColor("#F44336")
             )
-            valueTextColor = Color.parseColor("#E0E0E0")
+            setDrawValues(true)
             valueTextSize = 14f
+            valueTextColor = Color.parseColor("#E0E0E0")
+
+            // Форматтер: скрываем 0%
+            setValueFormatter(object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    return if (value > 0f) "${value.toInt()}%" else ""
+                }
+            })
         }
 
         pieChart.data = PieData(dataSet)
+        pieChart.setDrawEntryLabels(false)
+        pieChart.description.isEnabled = false
+        pieChart.isDrawHoleEnabled = true
+        pieChart.holeRadius = 45f
 
-        // ✅ Настройка отображения при нулевых значениях
+        // Легенда
+        pieChart.legend.apply {
+            isEnabled = true
+            textColor = Color.parseColor("#E0E0E0")
+            horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.CENTER
+            verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.BOTTOM
+            orientation = com.github.mikephil.charting.components.Legend.LegendOrientation.HORIZONTAL
+            setDrawInside(false)
+        }
+
+        // Текст в центре
         if (goodCount + neutralCount + badCount == 0f) {
-            pieChart.setDrawEntryLabels(false) // Скрыть подписи на секторах
-            pieChart.centerText = "Нет данных"
-            pieChart.setCenterTextSize(16f)
+            pieChart.centerText = "Нет данных\nза этот месяц"
+            pieChart.setCenterTextSize(14f)
             pieChart.setCenterTextColor(Color.parseColor("#A0A0A0"))
         } else {
-            pieChart.setDrawEntryLabels(true)
             pieChart.centerText = ""
         }
 

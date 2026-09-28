@@ -30,6 +30,12 @@ class EntryActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_entry)
 
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        toolbar.navigationIcon?.setTint(Color.parseColor("#FFFFFF"))
+
         selectedYear = intent.getIntExtra("YEAR", Calendar.getInstance().get(Calendar.YEAR))
         selectedMonth = intent.getIntExtra("MONTH", Calendar.getInstance().get(Calendar.MONTH) + 1)
         selectedDay = intent.getIntExtra("DAY", Calendar.getInstance().get(Calendar.DAY_OF_MONTH))
@@ -68,6 +74,10 @@ class EntryActivity : AppCompatActivity() {
 
         setupColorSelection()
         setupButtons()
+    }
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressedDispatcher.onBackPressed()
+        return true
     }
 
     private fun selectColor(view: View, color: Int, moodType: Int) {

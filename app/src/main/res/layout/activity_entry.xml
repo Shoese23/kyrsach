@@ -16,6 +16,18 @@
         android:padding="16dp"
         android:background="#121212">
 
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="#121212"
+            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:title="Запись настроения"
+            app:titleTextColor="#E0E0E0"
+            android:layout_marginBottom="8dp"
+            app:navigationIconTint="#FFFFFF"
+            />
+
         <TextView
             android:id="@+id/tv_entry_date"
             android:layout_width="match_parent"
@@ -120,12 +132,11 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Опишите свой день"
             android:layout_marginBottom="24dp"
-            app:hintTextColor="#FFFFFF"
-            app:boxBackgroundMode="outline"
-            app:boxStrokeColor="#555555"
-            app:boxStrokeColorFocused="#91BFC2">
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:hint="Опишите свой день"
+            app:boxStrokeColor="#91BFC2"
+            app:hintTextColor="#91BFC2">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_mood_text"
@@ -136,8 +147,8 @@
                 android:minLines="4"
                 android:maxLines="8"
                 android:textColor="#E0E0E0"
-                android:textColorHint="#757575"
-                android:backgroundTint="#555555"/>
+                android:textColorHint="#9E9E9E"
+                android:hint="Опишите свой день"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <LinearLayout
