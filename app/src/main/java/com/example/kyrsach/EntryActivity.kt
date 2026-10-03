@@ -40,34 +40,37 @@ class EntryActivity : AppCompatActivity() {
         selectedMonth = intent.getIntExtra("MONTH", Calendar.getInstance().get(Calendar.MONTH) + 1)
         selectedDay = intent.getIntExtra("DAY", Calendar.getInstance().get(Calendar.DAY_OF_MONTH))
 
-        findViewById<TextView>(R.id.tv_entry_date).text = "$selectedDay.$selectedMonth.$selectedYear"
-
+        val tvDate = findViewById<TextView>(R.id.tv_entry_date)
         rgEmoji = findViewById(R.id.rg_emoji)
         etText = findViewById(R.id.et_mood_text)
         colorBad = findViewById(R.id.color_bad)
         colorNeutral = findViewById(R.id.color_neutral)
         colorGood = findViewById(R.id.color_good)
 
-        // Загружаем существующую запись
-        val existingMood = getMood(selectedYear, selectedMonth, selectedDay)
-        val existingText = getMoodText(selectedYear, selectedMonth, selectedDay)
+        tvDate.text = "$selectedDay.$selectedMonth.$selectedYear"
 
-        if (existingMood > 0) {
-            selectedMoodType = existingMood
-            etText.setText(existingText) // ✅ Предзаполняем текст
+        if (savedInstanceState != null) {
+            selectedMoodType = savedInstanceState.getInt("selectedMoodType", 0)
+            selectedColor = savedInstanceState.getInt("selectedColor", 0)
 
-            when (existingMood) {
-                1 -> {
-                    rgEmoji.check(R.id.rb_emoji_good)
-                    selectColor(colorGood, Color.parseColor("#4CAF50"), 1)
-                }
-                2 -> {
-                    rgEmoji.check(R.id.rb_emoji_neutral)
-                    selectColor(colorNeutral, Color.parseColor("#FFEB3B"), 2)
-                }
-                3 -> {
-                    rgEmoji.check(R.id.rb_emoji_bad)
-                    selectColor(colorBad, Color.parseColor("#F44336"), 3)
+            val savedText = savedInstanceState.getString("savedText", "")
+            etText.setText(savedText)
+
+            when (selectedMoodType) {
+                1 -> { rgEmoji.check(R.id.rb_emoji_good); selectColor(colorGood, Color.parseColor("#4CAF50"), 1) }
+                2 -> { rgEmoji.check(R.id.rb_emoji_neutral); selectColor(colorNeutral, Color.parseColor("#FFEB3B"), 2) }
+                3 -> { rgEmoji.check(R.id.rb_emoji_bad); selectColor(colorBad, Color.parseColor("#F44336"), 3) }
+            }
+        } else {
+            val existingMood = getMood(selectedYear, selectedMonth, selectedDay)
+            if (existingMood > 0) {
+                selectedMoodType = existingMood
+                etText.setText(getMoodText(selectedYear, selectedMonth, selectedDay))
+
+                when (existingMood) {
+                    1 -> { rgEmoji.check(R.id.rb_emoji_good); selectColor(colorGood, Color.parseColor("#4CAF50"), 1) }
+                    2 -> { rgEmoji.check(R.id.rb_emoji_neutral); selectColor(colorNeutral, Color.parseColor("#FFEB3B"), 2) }
+                    3 -> { rgEmoji.check(R.id.rb_emoji_bad); selectColor(colorBad, Color.parseColor("#F44336"), 3) }
                 }
             }
         }
@@ -75,15 +78,17 @@ class EntryActivity : AppCompatActivity() {
         setupColorSelection()
         setupButtons()
     }
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressedDispatcher.onBackPressed()
-        return true
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("selectedMoodType", selectedMoodType)
+        outState.putInt("selectedColor", selectedColor)
+        outState.putString("savedText", etText.text.toString())
     }
 
     private fun selectColor(view: View, color: Int, moodType: Int) {
         selectedColor = color
         selectedMoodType = moodType
-
         listOf(colorBad, colorNeutral, colorGood).forEach { it.alpha = 0.5f }
         view.alpha = 1.0f
     }
@@ -119,8 +124,6 @@ class EntryActivity : AppCompatActivity() {
             }
 
             val text = etText.text.toString().trim()
-
-            // ✅ Сохраняем и настроение, и текст
             saveMood(selectedYear, selectedMonth, selectedDay, selectedMoodType)
             saveMoodText(selectedYear, selectedMonth, selectedDay, text)
 
@@ -135,6 +138,11 @@ class EntryActivity : AppCompatActivity() {
         }
     }
 
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressedDispatcher.onBackPressed()
+        return true
+    }
+
     private fun saveMood(year: Int, month: Int, day: Int, moodType: Int) {
         val prefs = getSharedPreferences("mood_prefs", Context.MODE_PRIVATE)
         prefs.edit().putInt("mood_${year}_${month}_${day}", moodType).apply()
@@ -145,7 +153,6 @@ class EntryActivity : AppCompatActivity() {
         return prefs.getInt("mood_${year}_${month}_${day}", 0)
     }
 
-    // ✅ Новые методы для работы с текстом
     private fun saveMoodText(year: Int, month: Int, day: Int, text: String) {
         val prefs = getSharedPreferences("mood_prefs", Context.MODE_PRIVATE)
         prefs.edit().putString("mood_text_${year}_${month}_${day}", text).apply()
